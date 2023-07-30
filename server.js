@@ -1,38 +1,52 @@
-const http = require('http');
-const db = require("./models"); // Importing the database configuration
+const express = require("express");
+const cors = require("cors");
 
-const server = http.createServer((req, res) => {
-  if (req.url === '/movies') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('All Movies Data in JSON format from Mongo DB');
-  } else if (req.url === '/genres') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('All Genres Data in JSON format from Mongo DB');
-  } else if (req.url === '/artists') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('All Artists Data in JSON format from Mongo DB');
-  } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not Found');
-  }
-});
+// make express object 
+const app = express();
+app.use(express.json());
 
-const port = 9000;
+// use the CORS object 
+var corsOptions = {
+  origin: "http://localhost:3000"
+};
 
-// Connecting to the database before starting the server
+app.use(cors(corsOptions));
+
+const db = require("./app/models");
 db.mongoose
-  .connect("mongodb://localhost:27017/moviesdb", {
+  .connect(db.url, {
     useNewUrlParser: true,
     useUnifiedTopology: true
   })
   .then(() => {
     console.log("Connected to the database!");
-    // Starting the server after successfully connecting to the database
-    server.listen(port, () => {
-      console.log(`Server running on http://localhost:${port}`);
-    });
   })
   .catch(err => {
     console.log("Cannot connect to the database!", err);
     process.exit();
   });
+
+// load the routes for movie 
+require("./app/routes/movie.routes")(app);
+
+// load the routes for genre
+require("./app/routes/genre.routes")(app);
+
+// load the routes for artist
+require("./app/routes/artist.routes")(app);
+
+// load the routes for users
+require("./app/routes/user.routes")(app);
+
+// set up a default route for / 
+app.get("/", (req, res) => {
+  res.json({ message: "Movie booking application" });
+});
+
+
+
+// set port and listen for requests, something like this :
+const PORT = process.env.PORT || 8085;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}.`);
+});
