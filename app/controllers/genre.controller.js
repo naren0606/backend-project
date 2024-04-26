@@ -1,7 +1,5 @@
 // load the schema models 
-const { genres } = require("../models");
 const db = require("../models");
-// use the Schema for the Courses
 const Genres = db.genres;
 
   exports.findAllGenres = (req, res) => {

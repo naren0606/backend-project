@@ -1,18 +1,26 @@
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require('cookie-parser');
+const dotenv = require('dotenv');
+const movieRoutes = require("./app/routes/movie.routes");
+const genreRoutes = require("./app/routes/genre.routes");
+const artistRoutes = require("./app/routes/artist.routes");
+const userRoutes = require("./app/routes/user.routes");
+const db = require("./app/models");
 
-// make express object 
-const app = express();
-app.use(express.json());
+dotenv.config();
 
-// use the CORS object 
 var corsOptions = {
   origin: "http://localhost:3000"
 };
 
+// Middlewares
+const app = express();
+app.use(express.json());
+app.use(cookieParser());
 app.use(cors(corsOptions));
 
-const db = require("./app/models");
+//MongoDB Connection
 db.mongoose
   .connect(db.url, {
     useNewUrlParser: true,
@@ -26,27 +34,19 @@ db.mongoose
     process.exit();
   });
 
-// load the routes for movie 
-require("./app/routes/movie.routes")(app);
+//Routes
+app.use("/api/movies", movieRoutes);
+app.use("/genres", genreRoutes);
+app.use("/artists", artistRoutes);
+app.use("/api/auth", userRoutes);
 
-// load the routes for genre
-require("./app/routes/genre.routes")(app);
-
-// load the routes for artist
-require("./app/routes/artist.routes")(app);
-
-// load the routes for users
-require("./app/routes/user.routes")(app);
-
-// set up a default route for / 
 app.get("/", (req, res) => {
   res.json({ message: "Movie booking application" });
 });
 
 
 
-// set port and listen for requests, something like this :
-const PORT = process.env.PORT || 8085;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 });

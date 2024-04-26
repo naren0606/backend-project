@@ -1,10 +1,7 @@
-// Routing means calling the correct api of controller function
-// depending upon the client request
+const express = require("express");
+const router = express.Router();
+const genreController = require("../controllers/genre.controller.js");
 
+router.get("/", genreController.findAllGenres);
 
-module.exports = app => {
-    const genres = require("../controllers/genre.controller.js");
-    var router = require("express").Router();
-    router.get("/", genres.findAllGenres);
-    app.use('/api/genres', router);
-    };
+module.exports = router;

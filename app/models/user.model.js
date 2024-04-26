@@ -3,7 +3,6 @@ module.exports = mongoose => {
         "user",
         mongoose.Schema(
           {
-            userid : Number,
             email: String,
             first_name : String,
             last_name : String,
@@ -11,10 +10,7 @@ module.exports = mongoose => {
             contact: String,
             password: String,
             role: {type: String, default: 'user'}, 
-            uuid : String,
-            accesstoken : String,
-            isLoggedIn: Boolean,
-            coupens: Array,
+            coupons: Array,
             bookingRequests: Array
           },
           { timestamps: true }

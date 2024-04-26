@@ -1,5 +1,4 @@
 
 module.exports = {
-    url: "mongodb://localhost:27017/moviesdb"
+    url: "mongodb+srv://narencreation101002:6FdOZ1EgHF35y1uc@cluster0.veeenzv.mongodb.net/moviesdb"
   };
-  

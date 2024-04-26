@@ -1,263 +1,210 @@
-const TokenGenerator = require('uuid-token-generator');
-const { fromString } = require('uuidv4');
-// load the schema models 
+
 const db = require("../models");
-// use the users schema 
 const User = db.users;
-const {atob,btoa}  = require("b2a");
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const Movie = require("../models/movie.model");
 
-exports.login = (req, res) => {
-    console.log(req.headers.authorization);
-    const authHeader  = req.headers.authorization.split(" ")[1];
-    console.log(authHeader);
-    console.log(atob(authHeader));
-    let unamePwd = atob(authHeader);
-    const uname =  unamePwd.split(":")[0];
-    const pwd = unamePwd.split(":")[1];
+exports.login = async (req, res) => {
+    const { username, password } = req.body;
 
-    console.log(uname);
-    console.log(pwd);
-    // Validate request
-    if (!uname && !pwd) {
-      res.status(400).send({ message: "Please provide username and password to continue." });
-      return;
+    if (!username || !password) {
+        return res.status(400).send({ message: "Please provide username and password." });
     }
 
-     const filter = { username: uname };
+    try {
+        const user = await User.findOne({ username });
 
-     //below method on successful comparison returns an array!
-    User.find(filter, (err, usersFound)=>{
-      let user = usersFound[0];  //get the first element from single size array
-      if(err || user === null){
-          console.log("IN ERR");
-          res.status(500).send({
-          message: "User Not Found."
-        });
-      }else {
-
-        if(pwd === user.password){
-          const tokgen = new TokenGenerator(); // Default is a 128-bit token encoded in base58
-          const accessTokenGenerated = tokgen.generate();
-          console.log(accessTokenGenerated);
-          
-          const uuidGenerated = fromString(uname);
-          user.isLoggedIn = true;
-          user.uuid = uuidGenerated;
-          user.accesstoken = accessTokenGenerated;
-          User.findOneAndUpdate(filter, user, { useFindAndModify: false })
-          .then(data => {
-            if (!data) {
-              res.status(404).send({
-                message: "Some error occurred, please try again later."
-              });
-            } else 
-            { 
-                //we are collecting this in react side as xhrLogin.getResponseHeader("access-token")
-                res.header('access-token', user.accesstoken); 
-                
-                //we are collecting this in react side as JSON.parse(this.responseText).id  
-                res.send({"id":user.uuid, "access-token":user.accesstoken}); 
-                //res.send(user);
-            }
-          })
-          .catch(err => {
-            res.status(500).send({
-              message: "Error updating."
-            });
-          });
-
-        }else{
-          res.status(500).send({
-            message: "Please enter valid password."
-          });
+        if (!user) {
+            return res.status(404).send({ message: "User not found." });
         }
-      }
-      
-    });
 
-  };
-
- exports.signUp = (req, res) => {
-     
-     console.log(req.body);
-    // Validate request
-    if (!req.body.email_address && !req.body.password) {
-      res.status(400).send({ message: "Please provide email and password to continue." });
-      return;
-    }
-  
-    // Create a User
-    // Since userName is not asked in react code
-    // we are considering concating firstname & lastname as username
-    const user = new User({
-      email: req.body.email_address,
-      first_name: req.body.first_name,
-      last_name: req.body.last_name,
-      username: req.body.first_name + req.body.last_name,
-      password: req.body.password,
-      contact: req.body.mobile_number,
-      role: req.body.role ? req.body.role : 'user',
-      isLoggedIn : false,   
-      uuid : "",
-      accesstoken : "",
-      coupens: [],
-      bookingRequests : []
-    });
-
-    // Save User in the database
-    user
-      .save(user)
-      .then(data => {
-        res.send(data);
-      })
-      .catch(err => {
-        res.status(500).send({
-          message:
-            err.message || "Some error occurred, please try again later."
-        });
-      });
-  };
- 
-
-exports.logout = (req, res) => {
-
-    // Validate request
-    if (!req.body.uuid) {
-      res.status(400).send({ message: "ID Not Found!" });
-      return;
-    }
-   
-    const update = { isLoggedIn: false, uuid: "",accesstoken: ""  };
-  
-    User.findOneAndUpdate({"uuid": req.body.uuid}, update)
-      .then(data => {
-        if (!data) {
-          res.status(404).send({
-            message: "Some error occurred, please try again later."
-          });
-        } else res.send({ message: "Logged Out successfully." });
-      })
-      .catch(err => {
-        res.status(500).send({
-          message: "Error updating."
-        });
-      });
-  };
-  
-exports.getCouponCode = (req, res) => {
-  console.log("In coupen code");
-  console.log(req.headers.authorization);
-  const tokenReceived  = req.headers.authorization.split(" ")[1];
-  console.log(tokenReceived);
-  User.find({"accesstoken": tokenReceived})
-  .then(data => {
-    if (!data) {
-      res.status(404).send({
-        message: "Some error occurred, please try again later."
-      });
-    } else 
-    {
-      console.log(data);
-      console.log(data[0].coupens);
-
-      var sendCoupenData = null;
-      for(i=0;i<data[0].coupens.length;i++)
-      {
-        // console.log(data[0].coupens[i].id);
-        // console.log(data[0].coupens[i].discountValue);
-
-        if(data[0].coupens[i].id ==req.query.code)
-        {
-          sendCoupenData = data[0].coupens[i]; //data[0].coupens[i].discountValue;
-          break;
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        
+        if (!passwordMatch) {
+            return res.status(401).send({ message: "Invalid credentials." });
         }
-      }
 
-      res.send(sendCoupenData);
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        res.cookie('token', token, { httpOnly: true });
+        return res.status(200).send({ message: "Login successful." });
+    } catch (error) {
+        console.error("Login error:", error);
+        return res.status(500).send({ message: "Internal server error." });
     }
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error validating token!."
-    });
-  });
- 
-  
 };
 
-exports.bookShow = (req, res) => {
-
-  var update = null;
-  var newRefNo = null;
-
-  // Validate request
-  if (!req.body.customerUuid) {
-    res.status(400).send({ message: "ID Not Found!" });
-    return;
+exports.signUp = (req, res) => {
+  if (!req.body.email_address || !req.body.password) {
+      res.status(400).send({ message: "Please provide email and password to continue." });
+      return;
   }
-  
-  //Find the user
-  User.find({"uuid": req.body.customerUuid})
-  .then(data => {
-    if (!data) {
-      res.status(404).send({
-        message: "Some error occurred, please try again later."
+  bcrypt.hash(req.body.password, 10, (err, hashedPassword) => {
+      if (err) {
+          res.status(500).send({ message: "Error hashing password." });
+          return;
+      }
+
+      const user = new User({
+          email: req.body.email_address,
+          first_name: req.body.first_name,
+          last_name: req.body.last_name,
+          username: req.body.first_name + req.body.last_name,
+          password: hashedPassword,
+          contact: req.body.mobile_number,
+          role: req.body.role ? req.body.role : 'user',
+          coupons: [{
+            code: "NEW20",
+            discount: 20, 
+            maxDiscountAmount: 149, 
+            minTotalAmount: 499, 
+            count: 0,
+            maxCount: 2 
+          }],
+          bookingRequests: []
       });
-    } 
-    else 
-    {
-      console.log("Currently Available Booking Requests Data of User");
-      console.log(data[0].bookingRequests)
-      
-      console.log("After Adding New Booking Requests");
-      
-      newRefNo = new Date().getMilliseconds().toString() + Math.floor(Math.random()*100).toString();
-      req.body.bookingRequest.reference_number =newRefNo;
 
-      data[0].bookingRequests.push(
-        req.body.bookingRequest);
-     
-      console.log(data[0].bookingRequests)
-
-      bookingRequests = data[0].bookingRequests;
-
-      update = {bookingRequests: data[0].bookingRequests};
-
-
-      //-----------------------------UPDATE DB-------------------------
-        if(update!=null)
-        {
-          console.log("Inside update")
-            User.findOneAndUpdate({"uuid": req.body.customerUuid}, update)
-            .then(data1 => {
-              if (!data1) {
-                res.status(404).send({
-                  message: "Some error occurred, please try again later."
-                });
-              } 
-              else 
-              {
-                console.log("Done update");
-                console.log(update);
-                console.log("sending reference No: " + newRefNo);
-                res.send({ reference_number: newRefNo });
-              }
-            })
-            .catch(err => {
+      user.save()
+          .then(data => {
+              res.send(data);
+          })
+          .catch(err => {
               res.status(500).send({
-                message: "Error updating."
+                  message: err.message || "Some error occurred, please try again later."
               });
-            });
-        }
-      //----------------------- TILL HERE------------------
-    }
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error validating token!."
-    });
+          });
   });
+};
 
-   
+
+exports.logout = (req, res) => {
+  res.clearCookie('token');
+  return res.status(200).send({ message: "Logout successful." });
+};
   
+exports.getCouponCode = (req, res) => {
+
+  jwt.verify(req.cookies.token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "Unauthorized." });
+    }
+
+    const userId = decoded.id;
+
+    User.findById(userId)
+      .then(user => {if (!user) {
+          return res.status(404).send({ message: "User not found." });
+        }
+        if (user.coupons.length === 0) {
+            return res.send({ message: "You don't have any coupons to use." });
+          } else{
+            return res.send({ coupons: user.coupons });
+          }
+        res.send({ coupons: user.coupons });
+      })
+      .catch(err => {
+        res.status(500).send({ message: "Error retrieving coupons." });
+      });
+  });
+};
+
+exports.bookShow = async (req, res) => {
+    try {
+
+        const decoded = jwt.verify(req.cookies.token, process.env.JWT_SECRET);
+        const userId = decoded.id;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).send({ message: "User not found." });
+        }
+
+        const { movieId, showId, seats, couponCode } = req.body;
+
+        const movie = await Movie.findById(movieId);
+
+        if (!movie) {
+            return res.status(404).send({ message: "Movie not found." });
+        }
+
+        const show = movie.shows.find(show => show.id === showId);
+
+        if (!show) {
+            return res.status(404).send({ message: "Show not found." });
+        }
+        const updatedAvailableSeats = parseInt(show.available_seats);
+
+        if (seats > updatedAvailableSeats) {
+            return res.status(400).send({ message: "Requested number of seats is not available." });
+        }
+
+        const totalAmount = show.unit_price * seats;
+
+        let discountAmount = 0;
+        if (couponCode) {
+            const couponIndex = user.coupons.findIndex(coupon => coupon.code.toLowerCase() === couponCode.toLowerCase());
+            if (couponIndex === -1) {
+                return res.status(404).send({ message: "Coupon code not found for the user." });
+            }
+
+            const coupon = user.coupons[couponIndex];
+            if (coupon.count >= coupon.maxCount) {
+                return res.status(400).send({ message: "Coupon code has reached its maximum usage limit." });
+            }
+
+            const { discount, maxDiscountAmount, minTotalAmount, maxCount } = coupon;
+
+            if (totalAmount < minTotalAmount) {
+                return res.status(400).send({ message: `Minimum total amount of ${minTotalAmount} required to apply this coupon.` });
+            }
+
+            discountAmount = Math.min((totalAmount * discount) / 100, maxDiscountAmount);
+            coupon.count++;
+
+            if (coupon.count === maxCount) {
+                user.coupons = user.coupons.filter(c => c.code.toLowerCase() !== couponCode.toLowerCase());
+            }
+            
+            await User.findByIdAndUpdate(userId, { coupons: user.coupons });
+  
+        }
+
+        const finalAmount = totalAmount - discountAmount;
+
+        const updatedSeats = updatedAvailableSeats - seats;
+
+        const updatedShow = await Movie.findOneAndUpdate(
+            { _id: movieId, 'shows.id': showId },
+            { $set: { 'shows.$.available_seats': updatedSeats.toString() } },
+            { new: true }
+        );
+
+        if (!updatedShow) {
+            return res.status(404).send({ message: "Failed to update available seats." });
+        }
+
+        const newRefNo = new Date().getTime().toString() + Math.floor(Math.random() * 100).toString();
+
+        user.bookingRequests.push({
+            movieId: movie._id,
+            showId,
+            seats,
+            unitPrice: show.unit_price,
+            totalAmount: finalAmount,
+            reference_number: newRefNo
+        });
+        await user.save();
+
+        return res.status(200).send({
+            reference_number: newRefNo,
+            movie_name: movie.title,
+            show_time: show.show_timing,
+            price_before_coupon: totalAmount,
+            price_after_coupon: finalAmount,
+            final_amount: finalAmount
+        });
+    } catch (error) {
+        console.error("Error booking show:", error);
+        return res.status(500).send({ message: "Internal server error." });
+    }
 };

@@ -1,34 +1,12 @@
-// Routing means calling the correct api of controller function
-// depending upon the client request
+const express = require("express");
+const router = express.Router();
+const userController = require("../controllers/user.controller.js");
+const authMiddleware = require('../middlewares/authMiddleware');
 
-module.exports = app => {
-    // We would load user.controller.js , something like :
-      const users = require("../controllers/user.controller");
-      
-      var router = require("express").Router();
-    
-      
-    // 1. SignUp route a new user.     
-        router.post("/auth/signup", users.signUp);
-    
-    // 2. Login route. 
-        router.post("/auth/login", users.login);
-    
-    // 3. Logout route
-        router.post("/auth/logout", users.logout);
-    
-    // 4. Coupen route
-        router.get("/auth/coupons", users.getCouponCode);
-    
-    // 5. Book show for user
-        router.post("/auth/bookings", users.bookShow);
+router.post("/signup", userController.signUp); 
+router.post("/login", userController.login); 
+router.post("/logout", authMiddleware, userController.logout); 
+router.get("/coupons", authMiddleware, userController.getCouponCode); 
+router.post("/book-show", authMiddleware, userController.bookShow); 
 
-
-    // All our API URLS would start with /api  , like 
-    // http://localhost:3000/api/sign-up
-        app.use('/api', router);
-    };
-    
-    
-    
-    
+module.exports = router;
