@@ -11,9 +11,10 @@ const db = require("./app/models");
 dotenv.config();
 
 var corsOptions = {
-  origin: ["https://showtime-frontend-vltk.onrender.com", "http://192.168.203:3000"]
+  origin: [
+    "https://showtime-project.vercel.app",
+  ]
 };
-
 
 // Middlewares
 const app = express();
@@ -21,7 +22,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(cors(corsOptions));
 
-//MongoDB Connection
+// MongoDB Connection
 db.mongoose
   .connect(db.url, {
     useNewUrlParser: true,
@@ -35,7 +36,7 @@ db.mongoose
     process.exit();
   });
 
-//Routes
+// Routes
 app.use("/api/movies", movieRoutes);
 app.use("/api/genres", genreRoutes);
 app.use("/api/artists", artistRoutes);
@@ -44,8 +45,6 @@ app.use("/api/auth", userRoutes);
 app.get("/", (req, res) => {
   res.json({ message: "Movie booking application" });
 });
-
-
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
