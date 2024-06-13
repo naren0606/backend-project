@@ -2,6 +2,9 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const morgan = require('morgan');
 const movieRoutes = require("./app/routes/movie.routes");
 const genreRoutes = require("./app/routes/genre.routes");
 const artistRoutes = require("./app/routes/artist.routes");
@@ -10,14 +13,22 @@ const db = require("./app/models");
 
 dotenv.config();
 
-var corsOptions = {
-  origin: [
-    "https://showtime-project.vercel.app",
-  ]
+// CORS options
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN.split(','),
 };
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 100,
+  message: "Too many requests from this IP, please try again after 15 minutes"
+});
 
 // Middlewares
 const app = express();
+app.use(helmet());
+app.use(limiter); 
+app.use(morgan('combined')); 
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors(corsOptions));
@@ -44,6 +55,17 @@ app.use("/api/auth", userRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Movie booking application" });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
+
+// 404 handler
+app.use((req, res, next) => {
+  res.status(404).send('Sorry, we cannot find that!');
 });
 
 const PORT = process.env.PORT || 3000;
