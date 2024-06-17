@@ -14,9 +14,17 @@ const db = require("./app/models");
 dotenv.config();
 
 // CORS options
+// const corsOptions = {
+//   origin: process.env.CORS_ORIGIN.split(','),
+// };
+
 const corsOptions = {
   origin: process.env.CORS_ORIGIN.split(','),
+  credentials: true, // allow credentials (e.g. cookies) to be sent
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // allowed HTTP methods
+  headers: ['Content-Type', 'Authorization'] // allowed HTTP headers
 };
+
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
