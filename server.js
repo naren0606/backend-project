@@ -15,7 +15,7 @@ dotenv.config();
 
 // CORS options
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN.split(','),
+  origin: "https://showtime-project.vercel.app",
 };
 
 const limiter = rateLimit({
