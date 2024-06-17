@@ -56,10 +56,37 @@ db.mongoose
   });
 
 // Routes
-app.use("/api/movies", movieRoutes);
-app.use("/api/genres", genreRoutes);
-app.use("/api/artists", artistRoutes);
-app.use("/api/auth", userRoutes);
+// app.use("/api/movies", movieRoutes);
+// app.use("/api/genres", genreRoutes);
+// app.use("/api/artists", artistRoutes);
+// app.use("/api/auth", userRoutes);
+
+// Log incoming requests
+app.use((req, res, next) => {
+  console.log(`Incoming request: ${req.method} ${req.url}`);
+  next();
+});
+
+// Log route registrations
+console.log("Registering routes...");
+app.use("/api/movies", (req, res, next) => {
+  console.log("Movies route hit");
+  next();
+}, movieRoutes);
+app.use("/api/genres", (req, res, next) => {
+  console.log("Genres route hit");
+  next();
+}, genreRoutes);
+app.use("/api/artists", (req, res, next) => {
+  console.log("Artists route hit");
+  next();
+}, artistRoutes);
+app.use("/api/auth", (req, res, next) => {
+  console.log("Auth route hit");
+  next();
+}, userRoutes);
+console.log("Routes registered.");
+
 
 app.get("/", (req, res) => {
   res.json({ message: "Movie booking application" });
