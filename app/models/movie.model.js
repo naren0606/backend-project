@@ -13,7 +13,7 @@ const movieSchema = new mongoose.Schema({
   duration: { type: Number, default: 60, min: 0, max: 1200 },
   critic_rating: { type: Number, default: 4.0 },
   story_line: String,
-  artists: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Artist' }], // Reference to Artist model
+  artists: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Artist' }],
   genres: { type: Array },
   shows: Array
 }, { timestamps: true });

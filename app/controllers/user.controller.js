@@ -192,8 +192,6 @@ exports.bookShow = async (req, res) => {
 
         const updatedSeats = updatedAvailableSeats - seats;
 
-             // const updatedSeats = updatedAvailableSeats - seats;
-
         const updatedShow = await Movie.findOneAndUpdate(
             { _id: movieId, 'shows.id': showId },
             { $set: { 'shows.$.available_seats': updatedSeats.toString() } },
@@ -206,7 +204,6 @@ exports.bookShow = async (req, res) => {
 
         const newRefNo = new Date().getTime().toString() + Math.floor(Math.random() * 100).toString();
 
-        // Create a new booking entry
         const bookingRequest = {
             movieId: movie._id,
             showId,
@@ -214,16 +211,12 @@ exports.bookShow = async (req, res) => {
             unitPrice: show.unit_price,
             totalAmount: finalAmount,
             reference_number: newRefNo,
-            couponCode: appliedCoupon ? appliedCoupon.code : null // Include the applied coupon code
+            couponCode: appliedCoupon ? appliedCoupon.code : null 
         };
 
-        // Push the new booking entry into the user's bookingRequests array
         user.bookingRequests.push(bookingRequest);
-        
-        // Save the user object to persist the changes
-        await user.save();
+                await user.save();
 
-        // Return booking details in the response
         return res.status(200).send({
             reference_number: newRefNo,
             movie_name: movie.title,
@@ -232,7 +225,7 @@ exports.bookShow = async (req, res) => {
             price_after_coupon: finalAmount,
             final_amount: finalAmount,
             seats,
-            couponCode: appliedCoupon ? appliedCoupon.code : null // Include the coupon code in the response
+            couponCode: appliedCoupon ? appliedCoupon.code : null 
         });
     } catch (error) {
         console.error("Error booking show:", error);
@@ -240,117 +233,3 @@ exports.bookShow = async (req, res) => {
     }
 };
 
-// exports.bookShow = async (req, res) => {
-//     try {
-
-//         const token = req.headers.authorization;
-//         if (!token) {
-//             return res.status(401).send({ message: "Unauthorized. Token not provided." });
-//         }
-    
-//         const decoded = jwt.verify(token.split(" ")[1], process.env.JWT_SECRET);
-//         if (!decoded) {
-//             return res.status(401).send({ message: "Unauthorized. Invalid token." });
-//         }
-    
-//         const userId = decoded.id;
-//         const user = await User.findById(userId);
-
-//         if (!user) {
-//             return res.status(404).send({ message: "User not found." });
-//         }
-
-//         const { movieId, showId, seats, couponCode } = req.body;
-
-//         const movie = await Movie.findById(movieId);
-
-//         if (!movie) {
-//             return res.status(404).send({ message: "Movie not found." });
-//         }
-
-//         const show = movie.shows.find(show => show.id === showId);
-
-//         if (!show) {
-//             return res.status(404).send({ message: "Show not found." });
-//         }
-//         const updatedAvailableSeats = parseInt(show.available_seats);
-
-//         if (seats > updatedAvailableSeats) {
-//             return res.status(400).send({ message: "Requested number of seats is not available." });
-//         }
-
-//         const totalAmount = show.unit_price * seats;
-
-//         let discountAmount = 0;
-//         if (couponCode) {
-//             const couponIndex = user.coupons.findIndex(coupon => coupon.code.toLowerCase() === couponCode.toLowerCase());
-//             if (couponIndex === -1) {
-//                 return res.status(404).send({ message: "Coupon code not found for the user." });
-//             }
-
-//             const coupon = user.coupons[couponIndex];
-//             if (coupon.count >= coupon.maxCount) {
-//                 return res.status(400).send({ message: "Coupon code has reached its maximum usage limit." });
-//             }
-
-//             const { discount, maxDiscountAmount, minTotalAmount, maxCount } = coupon;
-
-//             if (totalAmount < minTotalAmount) {
-//                 return res.status(400).send({ message: `Minimum total amount of ${minTotalAmount} required to apply this coupon.` });
-//             }
-
-//             discountAmount = Math.min((totalAmount * discount) / 100, maxDiscountAmount);
-//             coupon.count++;
-
-//             if (coupon.count === maxCount) {
-//                 user.coupons = user.coupons.filter(c => c.code.toLowerCase() !== couponCode.toLowerCase());
-//             }
-            
-//             await User.findByIdAndUpdate(userId, { coupons: user.coupons });
-  
-//         }
-
-//         const finalAmount = totalAmount - discountAmount;
-
-        // const updatedSeats = updatedAvailableSeats - seats;
-
-        // const updatedShow = await Movie.findOneAndUpdate(
-        //     { _id: movieId, 'shows.id': showId },
-        //     { $set: { 'shows.$.available_seats': updatedSeats.toString() } },
-        //     { new: true }
-        // );
-
-//         if (!updatedShow) {
-//             return res.status(404).send({ message: "Failed to update available seats." });
-//         }
-
-//         const newRefNo = new Date().getTime().toString() + Math.floor(Math.random() * 100).toString();
-
-//         user.bookingRequests.push({
-//             movieId: movie._id,
-//             showId,
-//             seats,
-//             unitPrice: show.unit_price,
-//             totalAmount: finalAmount,
-//             reference_number: newRefNo
-//         });
-//         await user.save();
-
-//         return res.status(200).send({
-//             reference_number: newRefNo,
-//             movie_name: movie.title,
-//             show_time: show.show_timing,
-//             price_before_coupon: totalAmount,
-//             price_after_coupon: finalAmount,
-//             final_amount: finalAmount
-//         });
-//     } catch (error) {
-//         console.error("Error booking show:", error);
-//         return res.status(500).send({ message: "Internal server error." });
-//     }
-// };
-
-
-
-        // const decoded = jwt.verify(req.cookies.token, process.env.JWT_SECRET);
-        // const userId = decoded.id;

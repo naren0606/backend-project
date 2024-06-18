@@ -1,9 +1,7 @@
-// load the db.config.js file 
 const dbConfig = require("../config/db.config.js");
 
 const mongoose = require("mongoose");
 
-// set up the database object 
 const db = {};
 db.mongoose = mongoose;
 db.url = dbConfig.url;
